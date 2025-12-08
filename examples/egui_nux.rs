@@ -28,24 +28,30 @@ struct App {
     channels: [bool; 7],
     selected_channel: usize,
     show_settings: bool,
-    sources: Vec<String>,
-    // selected_source: usize,
+    sources: Vec<(usize, bool, String)>,
+    destinations: Vec<(usize, bool, String)>,
+    selected_source: usize,
 }
 
 impl App {
     fn default() -> Self {
         let midi_con = ArcMutexMidiCon::new();
-        let sources = midi_con.list_sources();
 
         midi_con.connect_destination(0);
-
+        midi_con.connect_source(0, |packet_list, midi_con| {
+            println!("Received MIDI data from source 0: {:?}", packet_list);
+            println!("MIDI Connections state: {:?}", midi_con.in_ports.keys());
+        });
+        let sources = midi_con.list_sources();
+        let destinations = midi_con.list_destinations();
         Self {
             midi_con,
             channels: [true; 7],
             selected_channel: 0,
             show_settings: false,
             sources,
-            // selected_source: 0,
+            destinations,
+            selected_source: 0,
         }
     }
 }
@@ -68,6 +74,68 @@ impl eframe::App for App {
                     }
                 });
             });
+
+            ui.heading("Mighty Midi Controller");
+
+            // if ui.button("⚙️").clicked() {
+            //     println!(" clicked ");
+            //     self.show_settings = true;
+            // }
+
+            // if self.show_settings {
+            ui.label("Select MIDI Source:");
+            egui::Grid::new("channel_table")
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.heading("In Connected");
+                    ui.heading("Out Connected");
+                    ui.heading("Name");
+                    ui.end_row();
+
+                    for (i, connected, name) in self.sources.iter_mut() {
+                        if ui.checkbox(&mut *connected, "").changed() {
+                            if *connected {
+                                let source_index = *i;
+                                self.midi_con.connect_source(
+                                    source_index,
+                                    move |packet_list, midi_con| {
+                                        println!(
+                                            "Received MIDI data from source {}: {:?}",
+                                            source_index, packet_list
+                                        );
+                                        println!(
+                                            "MIDI Connections state: {:?}",
+                                            midi_con.in_ports.keys()
+                                        );
+                                    },
+                                );
+                            } else {
+                                self.midi_con.disconnect_source(*i);
+                            }
+                        }
+                        ui.label(format!("{}", name));
+
+                        // ui.checkbox(&mut self.channels[i], "");
+                        //  ui.radio_value(&mut self.selected_channel, i, "");
+                        ui.end_row();
+                    }
+                });
+
+            // egui::ComboBox::from_label("MIDI Source")
+            //     .selected_text(
+            //         self.sources
+            //             .get(self.selected_source)
+            //             .cloned()
+            //             .unwrap_or_else(|| "None".to_string()),
+            //     )
+            //     .show_ui(ui, |ui| {
+            //         for (i, name) in self.sources.iter().enumerate() {
+            //             ui.selectable_value(&mut self.selected_source, i, name);
+            //         }
+            //     });
+            // }
+
+            ui.separator();
 
             ui.horizontal(|ui| {
                 for i in 0..self.channels.len() {
@@ -114,10 +182,6 @@ impl eframe::App for App {
                 }
             });
 
-            // ui.heading("LooPer with Tap Tempo");
-            // self.bars.update(ui);
-            // self.meter.update(ui);
-            // self.tempo.update(ui);
             // ui.separator();
             // ui.horizontal_top(|ui| {
             //     ui.label(format!("{:?}", self.connections.source));
@@ -129,38 +193,7 @@ impl eframe::App for App {
             //     //     ui.label(format!("{:?}", self.connections.source));
             //     // });
 
-            //     if self.show_settings {
-            //         egui::Window::new("Settings")
-            //             .open(&mut self.show_settings)
-            //             .show(ctx, |ui| {
-            //                 ui.label("Select MIDI Source:");
-
-            //                 // Example: get source names (replace with your actual source list)
-            //                 let midi_sources: Sources = Sources;
-            //                 let sources: Vec<String> = midi_sources
-            //                     .into_iter()
-            //                     .map(|s| s.display_name().unwrap_or_else(|| "Unknown".to_string()))
-            //                     .collect();
-
-            //                 // println!("{}", sources.join(", "));
-
-            //                 egui::ComboBox::from_label("MIDI Source")
-            //                     .selected_text(
-            //                         sources
-            //                             .get(self.selected_source)
-            //                             .cloned()
-            //                             .unwrap_or_else(|| "None".to_string()),
-            //                     )
-            //                     .show_ui(ui, |ui| {
-            //                         for (i, name) in sources.iter().enumerate() {
-            //                             ui.selectable_value(&mut self.selected_source, i, name);
-            //                         }
-            //                     });
-
-            //                 // You can use self.selected_source to update your Connections, etc.
-            //             });
-            //    }
-            // })
+            //
         });
     }
 }

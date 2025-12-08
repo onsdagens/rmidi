@@ -16,6 +16,10 @@ The exact form for notifications is still to be determined. The idea is that the
 
 Familiar (human readable) names are provided by the API, allowing configurations to be serialized, stored, de-serialized to attempt to recover MIDI session state. (There is of course no guarantee that the same set of MIDI sources/destinations are physically connected.)
 
+## TODO
+
+As of now the crate is highly experimental and will panic on errors (e.g., on failed connections). Also only lowest level functionality, receiving and sending raw MIDI data, is supported. As there are other crates available for parsing/abstracting raw MIDI data, that might be a good design decision (quoting Malte Munch, do one thing but do it good).
+
 ## Example
 
 The crate comes with a set of examples to showcase the functionality. The `egui_nux`, implements the skeleton for the MIGHTY line of NUX devices, tested on the MIGHTY SPACE modelling amplifier.
